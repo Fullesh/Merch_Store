@@ -1,0 +1,31 @@
+version: "3"
+
+
+services:
+  db:
+    image: postgres:16.3
+    restart: on-failure
+    env_file:
+      - .env
+    environment:
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+      POSTGRES_HOST: ${DATABASE_HOST}
+      POSTGRES_DB: ${DATABASE_NAME}
+      PG_DATA: /var/lib/postgresql/data/pgdata
+    healthcheck:
+      test: ["CMD-SHELL", "-c", "pg_isready -d ${DATABASE_NAME} -U ${DATABASE_USER}"]
+      interval: 10s
+      retries: 3
+      timeout: 5s
+
+  app:
+    build: .
+    env_file:
+      - .env
+    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8080"
+    ports:
+      - '8080:8080'
+      - '5432:5432'
+    depends_on:
+      db:
+        condition: service_healthy
